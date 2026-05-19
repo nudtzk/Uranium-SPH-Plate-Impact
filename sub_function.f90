@@ -1,313 +1,182 @@
 module subs
-use vars
-use imsl
-implicit none
+  use vars
+  implicit none
 contains
-asd
-	subroutine density()                      !page114Ò³ Á¬ÐøÐÔÃÜ¶È·½³Ì
-		integer::i,j
-		real::d_rho
-		real::rv(2)
-		real::grad_w(2)
-		rho_temp=rho
-		do i=1,num
-			d_rho=0.0
-				do j=1,num
-					rv(1)=v(1,i)-v(1,j)
-					rv(2)=v(2,i)-v(2,j)
-					call gradient_w(i,j,grad_w,h)
-					d_rho=d_rho+m(j)*dot_product(rv,grad_w)*dt	 
-				end do	
-			rho(i)=rho_temp(i)+d_rho
-		end do
-	end subroutine density
 
-	subroutine strain_rate()
-		integer::i,j
-		real::grad_w(2)
-		real::rv_ji(2)
-		    eps_rate=0.0		
-			do i=1,num
-				do j=1,num
-					rv_ji(1)=v(1,j)-v(1,i)
-					rv_ji(2)=v(2,j)-v(2,i)
-					call gradient_w(i,j,grad_w,h)
-					eps_rate(1,1,i)=eps_rate(1,1,i)+m(j)/rho(j)*rv_ji(1)*grad_w(1)+m(j)/rho(j)*rv_ji(1)*grad_w(1)-2/3*m(j)/rho(j)*dot_product(rv_ji,grad_w)
-					eps_rate(1,2,i)=eps_rate(1,2,i)+m(j)/rho(j)*rv_ji(2)*grad_w(1)+m(j)/rho(j)*rv_ji(1)*grad_w(2)
-					eps_rate(2,1,i)=eps_rate(2,1,i)+m(j)/rho(j)*rv_ji(1)*grad_w(2)+m(j)/rho(j)*rv_ji(2)*grad_w(1)
-					eps_rate(2,2,i)=eps_rate(2,2,i)+m(j)/rho(j)*rv_ji(2)*grad_w(2)+m(j)/rho(j)*rv_ji(2)*grad_w(2)-2/3*m(j)/rho(j)*dot_product(rv_ji,grad_w)
-				end do
-			end do
-	end subroutine strain_rate
+  subroutine density()
+    integer :: i, j
+    real :: d_rho
+    real :: relative_velocity(2), grad_w(2)
 
-	subroutine pressure()                                !EOS model
-		integer::i
-		do i=1,num	
-	     !	p(i)=c**2/(rho(i)*7)*((rho(i)/rho_0(i))**7-1)                      !!!!!!
-		    p(i)=c**2*rho(i)
-        end do
-	end subroutine pressure
+    rho_temp = rho
+    do i = 1, num
+      d_rho = 0.0
+      do j = 1, num
+        relative_velocity = velocity(:,i) - velocity(:,j)
+        call gradient_w(i, j, grad_w, h)
+        d_rho = d_rho + mass(j) * dot_product(relative_velocity, grad_w) * dt
+      end do
+      rho(i) = rho_temp(i) + d_rho
+    end do
+  end subroutine density
 
+  subroutine strain_rate()
+    integer :: i, j
+    real :: grad_w(2), relative_velocity(2), divergence
 
-	subroutine stress()
-		integer::i,j
-			do i=1,num
-			tao(:,:,i)=miu*eps_rate(:,:,i)
-			sig(:,:,i)=-p(i)*delta(:,:)+tao(:,:,i)
-			end do
-	end subroutine stress
+    strain_rate_tensor = 0.0
+    do i = 1, num
+      do j = 1, num
+        relative_velocity = velocity(:,j) - velocity(:,i)
+        call gradient_w(i, j, grad_w, h)
+        divergence = dot_product(relative_velocity, grad_w)
+        strain_rate_tensor(1,1,i) = strain_rate_tensor(1,1,i) + &
+          2.0 * mass(j) / rho(j) * relative_velocity(1) * grad_w(1) - &
+          (2.0 / 3.0) * mass(j) / rho(j) * divergence
+        strain_rate_tensor(1,2,i) = strain_rate_tensor(1,2,i) + &
+          mass(j) / rho(j) * (relative_velocity(2) * grad_w(1) + relative_velocity(1) * grad_w(2))
+        strain_rate_tensor(2,1,i) = strain_rate_tensor(1,2,i)
+        strain_rate_tensor(2,2,i) = strain_rate_tensor(2,2,i) + &
+          2.0 * mass(j) / rho(j) * relative_velocity(2) * grad_w(2) - &
+          (2.0 / 3.0) * mass(j) / rho(j) * divergence
+      end do
+    end do
+  end subroutine strain_rate
 
-    subroutine kinematic()
-        integer::i,j
-		real::grad_w(2),w
-		real::q
-		dv=0.0
-		q=0.0
-			do i=1,num
-				do j=1,num
-						call gradient_w(i,j,grad_w,h)
-    			!		call viscosity(i,j,h,c,rho(i),rho(j),q)
-					
-							dv(1,i)=dv(1,i)+m(j)*((sig(1,1,i)/(rho(i)**2)+sig(1,1,j)/(rho(j)**2)+q)*grad_w(1))
-							dv(2,i)=dv(2,i)+m(j)*((sig(2,2,i)/(rho(i)**2)+sig(2,2,j)/(rho(j)**2)+q)*grad_w(2))
-					!       dv(1,i)=dv(1,i)+m(j)*((sig(1,1,i)/(rho(i)**2)+sig(1,1,j)/(rho(j)**2)+q)*grad_w(1)+(sig(1,2,i)/(rho(i)**2)+sig(1,2,j)/(rho(j)**2))*grad_w(2))
-					!		dv(2,i)=dv(2,i)+m(j)*((sig(2,1,i)/(rho(i)**2)+sig(2,1,j)/(rho(j)**2))*grad_w(1)+(sig(2,2,i)/(rho(i)**2)+sig(2,2,j)/(rho(j)**2)+q)*grad_w(2))					
-					
-				end do			
-			end do    
-					dv=dv*dt
-    end subroutine kinematic
+  subroutine pressure_linear()
+    integer :: i
+    do i = 1, num
+      pressure(i) = c**2 * rho(i)
+    end do
+  end subroutine pressure_linear
 
-	
-	subroutine viscosity(i,j,h_ij,c_ij,rho_i,rho_j,q)
-		integer::i,j
-		real::alpha,beta,phi,theta
-		real::h_i,h_j,h_ij					   !h_j=h_j=h_ij=constant
-		real::c_i,c_j,c_ij                     !c_j=c_j=c_ij=constant
-		real::rho_i,rho_j,rho_ij
-		real::rv(2)
-		real::vd(2)
-		real::q
+  subroutine stress_update()
+    integer :: i
+    do i = 1, num
+      deviatoric_stress(:,:,i) = shear_modulus * strain_rate_tensor(:,:,i)
+      stress(:,:,i) = -pressure(i) * identity(:,:) + deviatoric_stress(:,:,i)
+    end do
+  end subroutine stress_update
 
-			rv(1)=v(1,i)-v(1,j)
-			rv(2)=v(2,i)-v(2,j)
-			vd(1)=xy(1,i)-xy(1,j)
-			vd(2)=xy(2,i)-xy(2,j)	
-					
-		    alpha=0.000001
-			beta=0.000001
-			phi=0.1*h_ij
-			rho_ij=(rho_i+rho_j)/2	         
+  subroutine kinematic()
+    integer :: i, j
+    real :: grad_w(2), q
 
-			theta=(h_ij*dot_product(rv,vd))/(dot_product(vd,vd)**2+phi**2)		
+    dvelocity = 0.0
+    q = 0.0
+    do i = 1, num
+      do j = 1, num
+        call gradient_w(i, j, grad_w, h)
+        dvelocity(1,i) = dvelocity(1,i) + mass(j) * &
+          ((stress(1,1,i) / rho(i)**2 + stress(1,1,j) / rho(j)**2 + q) * grad_w(1))
+        dvelocity(2,i) = dvelocity(2,i) + mass(j) * &
+          ((stress(2,2,i) / rho(i)**2 + stress(2,2,j) / rho(j)**2 + q) * grad_w(2))
+      end do
+    end do
+    dvelocity = dvelocity * dt
+  end subroutine kinematic
 
-		if(dot_product(rv,vd)<0)then
+  subroutine energy()
+    integer :: i, j
+    real :: grad_w(2), de, relative_velocity(2)
 
-				q=(-alpha*c_ij*theta+beta*theta**2)/rho_ij
-	!			q=0.0
-			else 
-				q=0.0
-			end if
-		return
-	end subroutine viscosity
+    do i = 1, num
+      de = 0.0
+      do j = 1, num
+        relative_velocity = velocity(:,i) - velocity(:,j)
+        call gradient_w(i, j, grad_w, h)
+        de = de + 0.5 * mass(j) * ( &
+          ((stress(1,1,i) / rho(i)**2 + stress(1,1,j) / rho(j)**2) * grad_w(1) + &
+           (stress(1,2,i) / rho(i)**2 + stress(1,2,j) / rho(j)**2) * grad_w(2)) * (-relative_velocity(1)) + &
+          ((stress(2,1,i) / rho(i)**2 + stress(2,1,j) / rho(j)**2) * grad_w(1) + &
+           (stress(2,2,i) / rho(i)**2 + stress(2,2,j) / rho(j)**2) * grad_w(2)) * (-relative_velocity(2)) )
+      end do
+      energy_internal(i) = energy_internal(i) + de * dt
+    end do
+  end subroutine energy
 
-   subroutine energy()
-	 integer::i,j
-	 real::grad_w(2)
-     real::de
-	 real::rv(2)
-	 de=0.0
-	 	do i=1,num
-	   	   do j=1,num
-				rv(1)=v(1,i)-v(1,j)
-				rv(2)=v(2,i)-v(2,j)
-				call gradient_w(i,j,grad_w,h)
-				de=de+0.5*m(j)*(((sig(1,1,i)/(rho(i)**2)+sig(1,1,j)/(rho(j)**2))*grad_w(1)+(sig(1,2,i)/(rho(i)**2)+sig(1,2,j)/(rho(j)**2))*grad_w(2))*(-rv(1))+((sig(2,1,i)/(rho(i)**2)+sig(2,1,j)/(rho(j)**2))*grad_w(1)+(sig(2,2,i)/(rho(i)**2)+sig(2,2,j)/(rho(j)**2))*grad_w(2))*(-rv(2)))
-				e(i)=e(i)+de*dt			
-			end do
-        end do    
+  subroutine gruneisen()
+    integer :: i
+    real :: ph, eh, rho_ref, rho_now, denominator
 
+    do i = 1, num
+      rho_ref = rho_0(i)
+      rho_now = rho(i)
+      denominator = rho_ref - s * (rho_ref - rho_now)
+      if (abs(denominator) < 1.0e-12) denominator = sign(1.0e-12, denominator)
+      ph = c**2 * (rho_ref - rho_now) / denominator**2
+      eh = 0.5 * ph * (rho_ref - rho_now)
+      pressure(i) = ph + gamma_eos * rho_now * (energy_internal(i) - eh)
+    end do
+  end subroutine gruneisen
 
-   end subroutine energy
+  subroutine movement()
+    integer :: i
+    do i = 1, num
+      velocity_old(:,i) = velocity(:,i)
+      velocity(:,i) = velocity_old(:,i) + dvelocity(:,i)
+      dxy(:,i) = 0.5 * (velocity(:,i) + velocity_old(:,i)) * dt
+      xy(:,i) = xy(:,i) + dxy(:,i)
+    end do
+  end subroutine movement
 
-   subroutine gruneisen()
-		integer::i
-		real::ph,eh
-		real::v_0,v
-		do i=1,num	
-			v_0=rho_0(i)
-			v=rho(i)
-			ph=c**2*(v_0-v)/(v_0-s*(v_0-v))**2
-			eh=0.5*ph*(v_0-v)
-			p(i)=ph+g*rho(i)*(e(i)-eh)
-			if(i==1)then
-				 print*,ph
-			end if
-        end do
-   end subroutine gruneisen
+  real function kernel_w(i, j, h_value)
+    integer, intent(in) :: i, j
+    real, intent(in) :: h_value
+    real :: pi, alpha_d, r, distance
+    real :: vector_ij(2)
 
+    pi = acos(-1.0)
+    vector_ij = xy(:,i) - xy(:,j)
+    distance = sqrt(dot_product(vector_ij, vector_ij))
+    r = distance / h_value
+    if (r > 1.0) then
+      kernel_w = 0.0
+    else
+      alpha_d = 5.0 / (pi * h_value**2)
+      kernel_w = alpha_d * (1.0 + 3.0 * r) * (1.0 - r)**3
+    end if
+  end function kernel_w
 
-	subroutine movement()
-	  integer::i,j
-	  real::w
-	  real::rv(2)
-		do i=1,num
-			do j=1,2
-				call XSHP(i,j,w,h)					                                !movement part                                     !
-				v_b(j,i)=v(j,i) 
-				v(j,i)=v_b(j,i)+dv(j,i)                                          !
-				dxy(j,i)=0.5*(v(j,i)+v_b(j,i))*dt                                         !
-				xy(j,i)=xy(j,i)+dxy(j,i)
-			end do
-		end do   
-	end subroutine movement
+  subroutine gradient_w(i, j, grad_w, h_value)
+    integer, intent(in) :: i, j
+    real, intent(out) :: grad_w(2)
+    real, intent(in) :: h_value
+    real :: pi, alpha_d, r, distance, grad
+    real :: vector_ij(2)
 
+    grad_w = 0.0
+    if (i == j) return
 
-	function w(i,j,h)
-		integer::i,j
-		real::h	          !kernal distance
-       
-		real::pi	
-		real::ad	
-		real::w
+    pi = acos(-1.0)
+    vector_ij = xy(:,i) - xy(:,j)
+    distance = sqrt(dot_product(vector_ij, vector_ij))
+    if (distance <= 1.0e-12) return
 
-		real::vd(2)       !vector  i->j
-		real::s           !absolute value of vd_ij=distance of these pair particle
-		real::R           !relative distance =s/h
-		
-		pi=3.1415         !constant of pi
- 
-		vd(1)=xy(1,i)-xy(1,j)
-		vd(2)=xy(2,i)-xy(2,j)
-		
-		s=sqrt(dot_product(vd,vd))
-		R=s/h
-		
-		ad=5/(pi*h**2)
-		if(R>1) ad=0.0
-		w=ad*(1+3*R)*(1-R)**3
-		return
-	end function w
+    r = distance / h_value
+    if (r > 1.0) return
 
-	subroutine gradient_w_1(i,j,grad_w,h)
-	
-		integer::i,j
-		real::h	          !kernal distance
-		real::grad_w(2)   !grad vector of w
+    alpha_d = 5.0 / (pi * h_value**2)
+    grad = alpha_d * (3.0 * (1.0 - r)**3 - 3.0 * (1.0 - r)**2 * (1.0 + 3.0 * r)) / &
+      (h_value * distance)
+    grad_w = grad * vector_ij
+  end subroutine gradient_w
 
-		real::pi	
-		real::ad	
-		real::w
+  subroutine init_output()
+    integer :: i
+    open(100, file="ans_initial.txt", status="replace")
+    do i = 1, num
+      write(100,*) xy(1,i), xy(2,i), velocity(1,i), pressure(i), tag(i)
+    end do
+    close(100)
+  end subroutine init_output
 
-		real::vd(2)       !vector  i->j
-		real::s           !absolute value of vd_ij=distance of these pair particle
-		real::R           !relative distance =s/h
-		real::grad        !grad of kernal function w
-		
-		pi=3.1415         !constant of pi
-
-		vd(1)=xy(1,i)-xy(1,j)
-		vd(2)=xy(2,i)-xy(2,j)
-		grad_w=0.0
-		s=sqrt(dot_product(vd,vd))
-	
-		R=s/h
-
-		ad=5/(pi*h**2)
-		if(R>1) ad=0.0
-
-		w=ad*(1+3*R)*(1-R)**3
-		grad=ad*(3*(1-R)**3-3*(1-R)**2*(1+3*R))*(1/h)*(1/s)
-
-		grad_w=grad*vd
-		if(i==j) grad_w=0.0	
-		return
-	
-	end subroutine gradient_w_1
-
-	subroutine gradient_w(i,j,grad_w,h)
-	
-		integer::i,j
-		real::h	          !kernal distance
-		real::grad_w(2)   !grad vector of w
-
-		real::pi	
-		real::ad	
-		real::w
-
-		real::vd(2)       !vector  i->j
-		real::s           !absolute value of vd_ij=distance of these pair particle
-		real::R           !relative distance =s/h
-		real::grad        !grad of kernal function w
-		
-		pi=3.1415         !constant of pi
-
-		vd(1)=xy(1,i)-xy(1,j)
-		vd(2)=xy(2,i)-xy(2,j)
-		grad_w=0.0
-		s=sqrt(dot_product(vd,vd))
-	
-		R=s/h
-
-		ad=5/(pi*h**2)
-		if(R>1) ad=0.0
-
-		w=ad*(1+3*R)*(1-R)**3
-		grad=ad*(3*(1-R)**3-3*(1-R)**2*(1+3*R))*(1/h)*(1/s)
-
-		grad_w=grad*vd
-		if(i==j) grad_w=0.0	
-		return
-	
-	end subroutine gradient_w
-
-
-
-    subroutine XSHP(i,j,w,h)
-		integer::i,j
-		real::h	          !kernal distance
-
-		real::pi	
-		real::ad	
-		real::w
-
-		real::vd(2)       !vector  i->j
-		real::s           !absolute value of vd_ij=distance of these pair particle
-		real::R           !relative distance =s/h
-		real::grad        !grad of kernal function w
-		
-		pi=3.1415         !constant of pi
-
-		vd(1)=xy(1,i)-xy(1,j)
-		vd(2)=xy(2,i)-xy(2,j)
-		s=sqrt(dot_product(vd,vd))
-	
-		R=s/h
-
-		ad=5/(pi*h**2)
-		if(R>1) ad=0.0
-		w=ad*(1+3*R)*(1-R)**3
-
-		return
-
-	end subroutine
-
-subroutine init_output()
-integer::i,j
-	open(100,file="ans.txt")
-	do i=1,num
-		write(100,*)xy(1,i),xy(2,i),v(1,i),p(i),tag(i)
-	end do
-end subroutine
-
-subroutine terminate_output()
-	integer::i,j
-	open(101,file="ans_1.txt")
-	do i=1,num
-		write(101,*)xy(1,i),xy(2,i),rho(i),p(i),tag(i)
-	end do
-end subroutine terminate_output
-
-
-
+  subroutine terminate_output()
+    integer :: i
+    open(101, file="ans_final.txt", status="replace")
+    do i = 1, num
+      write(101,*) xy(1,i), xy(2,i), rho(i), pressure(i), tag(i)
+    end do
+    close(101)
+  end subroutine terminate_output
 end module subs
