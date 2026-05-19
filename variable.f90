@@ -1,28 +1,29 @@
+module vars
+  implicit none
 
-module vars.   !sdfsdfsdf
-real,allocatable,save::xy_1_0(:,:),xy_2_0(:,:),xy_1(:,:),xy_2(:,:),xy_0(:,:),xy(:,:),dxy(:,:),dXSHP(:,:)
-real,save::L_x_1,R_x_1,D_y_1,U_y_1,L_x_2,R_x_2,D_y_2,U_y_2
-real,save::dx_1,dy_1,dx_2,dy_2,dx,dy
-integer,save::dim
+  integer, save :: dim
+  integer, save :: loop_time
+  integer, save :: num_x_1, num_y_1, num_x_2, num_y_2
+  integer, save :: num_x, num_y, num_1, num_2, num
 
-integer,save::loop_time
-real,save::t,dt
-real,save::h
+  real, save :: t, dt, h
+  real, save :: L_x_1, R_x_1, D_y_1, U_y_1
+  real, save :: L_x_2, R_x_2, D_y_2, U_y_2
+  real, save :: dx_1, dy_1, dx_2, dy_2, dx, dy
+  real, save :: c, s, gamma_eos, shear_modulus, rho_init
 
-real,allocatable,save::rho_0(:),rho(:),rho_temp(:),m(:),tag(:)
-
-real,allocatable,save::rho_1_0(:),rho_2_0(:),rho_1(:),rho_2(:),m_1(:),m_2(:),tag_1(:),tag_2(:)
-real::c,s,g,miu,rho_init
-
-
-real,allocatable,save::buck(:),p_0(:),p(:),e(:),v_0(:,:),v(:,:),v_b(:,:),dv(:,:),a(:,:)!!
-real,allocatable,save::v_1_0(:,:),v_2_0(:,:),p_1(:),p_2(:)             
-real,allocatable,save::sig(:,:,:),tao(:,:,:),eps_rate(:,:,:),delta(:,:)
-
-
-
-integer,allocatable,save::mark(:)
-integer,save::num_x_1,num_y_1,num_x_2,num_y_2,num_x,num_y,num_1,num_2,num
-real,save::k
-
+  real, allocatable, save :: xy_1_0(:,:), xy_2_0(:,:)
+  real, allocatable, save :: xy_1(:,:), xy_2(:,:)
+  real, allocatable, save :: xy_0(:,:), xy(:,:), dxy(:,:)
+  real, allocatable, save :: rho_0(:), rho(:), rho_temp(:), mass(:), tag(:)
+  real, allocatable, save :: rho_1_0(:), rho_2_0(:), rho_1(:), rho_2(:)
+  real, allocatable, save :: mass_1(:), mass_2(:), tag_1(:), tag_2(:)
+  real, allocatable, save :: pressure_0(:), pressure(:), energy_internal(:)
+  real, allocatable, save :: velocity_0(:,:), velocity(:,:), velocity_old(:,:)
+  real, allocatable, save :: dvelocity(:,:), acceleration(:,:)
+  real, allocatable, save :: velocity_1_0(:,:), velocity_2_0(:,:)
+  real, allocatable, save :: pressure_1(:), pressure_2(:)
+  real, allocatable, save :: stress(:,:,:), deviatoric_stress(:,:,:)
+  real, allocatable, save :: strain_rate_tensor(:,:,:), identity(:,:)
+  integer, allocatable, save :: mark(:)
 end module vars
