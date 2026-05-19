@@ -1,6 +1,6 @@
 # Uranium SPH Plate-Impact Template
 
-This repository contains a compact Fortran template for a two-dimensional smoothed particle hydrodynamics (SPH) plate-impact exercise. It was originally prepared by Kun Zhang as a teaching template: students forked the repository, changed the template for their own paths or parameter studies, and submitted their work through GitHub.
+This repository contains a compact Fortran template for a two-dimensional smoothed particle hydrodynamics (SPH) plate-impact exercise. It was prepared by Zhang Kun at NUDT as a teaching template: students forked the repository, changed the template for their own paths or parameter studies, and submitted their work through GitHub.
 
 The current version keeps only the runnable template code and removes the old student submission-link files from the repository root.
 
@@ -14,7 +14,7 @@ The current version keeps only the runnable template code and removes the old st
   - `ans_initial.txt`
   - `ans_final.txt`
 
-The code is intentionally small and explicit. It is meant for teaching and code-reading rather than production-scale impact simulation.
+The template can be used to adjust the initial impact velocity and inspect the evolution of particle pressure and density fields. The output files can be imported into Tecplot 3 for post-processing and visualization.
 
 ## Repository Layout
 
@@ -69,14 +69,12 @@ ans_final.txt
 
 ## Precompiled Package
 
-`exe.rar` contains the original precompiled executable package that was used in the teaching exercise. The source code in this repository is the preferred reference, but the archive is kept so the original runnable package is not lost.
+`exe.rar` contains the original precompiled executable package used in the teaching exercise. The source code is kept as the main reference, and the archive is retained for convenience.
 
 ## Notes
 
-This is a teaching template, not a calibrated research solver. It is useful for demonstrating SPH data structures, particle loops, kernel-gradient evaluation, density update, a simplified Gruneisen-type pressure update, and explicit time integration.
+This template demonstrates a basic SPH plate-impact workflow, including particle initialization, kernel-gradient evaluation, density update, pressure calculation, stress update, and explicit motion integration. The initial velocity is defined in `init.f90` and can be modified for different impact cases.
 
 ## Attribution
 
-Template author and instructor: Kun Zhang.
-
-The repository was used as a GitHub-based coding and submission exercise for students working on SPH and plate-impact simulation examples.
+Written by Zhang Kun, National University of Defense Technology (NUDT).
