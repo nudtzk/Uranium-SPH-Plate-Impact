@@ -1,0 +1,6 @@
+*.o
+*.mod
+*.exe
+sph_plate_impact
+ans_initial.txt
+ans_final.txt
