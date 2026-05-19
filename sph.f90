@@ -1,32 +1,30 @@
-program test_sph !a square phase water. movement unit g,cm,s
+program sph_plate_impact
+  use vars
+  use subs
+  use init
+  implicit none
 
-use imsl
-use vars
-use subs
-use init
-implicit none
-integer::i,j
-real::time_begin,time_end
-    call init_output()
-	call init_data()
-	call cpu_time(time_begin)
+  real :: time_begin, time_end
 
-do loop_time=1,int(t/dt)
-	 print*,"loop_time=",loop_time,"=>",int(t/dt)
+  call init_data()
+  call init_output()
+  call cpu_time(time_begin)
 
-   call strain_rate()
- !  call pressure()            !
-   call energy()
-   call gruneisen()
-   call stress()  
-   call kinematic()
-   call movement()
-   call density()             !
+  do loop_time = 1, int(t / dt)
+    if (mod(loop_time, 10) == 0) then
+      print *, "Step", loop_time, "of", int(t / dt)
+    end if
 
-end do
+    call strain_rate()
+    call energy()
+    call gruneisen()
+    call stress_update()
+    call kinematic()
+    call movement()
+    call density()
+  end do
 
-	call terminate_output()
-
-	   
-end program
-
+  call cpu_time(time_end)
+  call terminate_output()
+  print *, "Simulation completed in", time_end - time_begin, "seconds"
+end program sph_plate_impact
